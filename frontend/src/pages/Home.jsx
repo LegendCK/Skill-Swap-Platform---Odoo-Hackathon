@@ -119,13 +119,55 @@ const mockProfiles = [
       { skill_id: 24, skill_name: "Blockchain" },
       { skill_id: 25, skill_name: "Cryptocurrency" }
     ]
+  },
+  {
+    user_id: 7,
+    name: "Anita Gupta",
+    location: "Kolkata, India",
+    profile_pic: null,
+    rating: 4.7,
+    total_swaps: 20,
+    is_public: true,
+    skills_offered: [
+      { skill_id: 13, skill_name: "Content Writing" },
+      { skill_id: 26, skill_name: "Copywriting" },
+      { skill_id: 27, skill_name: "Blog Writing" }
+    ],
+    skills_wanted: [
+      { skill_id: 4, skill_name: "UI/UX Design" },
+      { skill_id: 28, skill_name: "Video Editing" }
+    ]
+  },
+  {
+    user_id: 8,
+    name: "Rohit Mehta",
+    location: "Ahmedabad, India",
+    profile_pic: null,
+    rating: 4.3,
+    total_swaps: 9,
+    is_public: true,
+    skills_offered: [
+      { skill_id: 29, skill_name: "Mobile App Development" },
+      { skill_id: 30, skill_name: "Flutter" },
+      { skill_id: 31, skill_name: "Firebase" }
+    ],
+    skills_wanted: [
+      { skill_id: 8, skill_name: "Machine Learning" },
+      { skill_id: 32, skill_name: "Backend Development" }
+    ]
   }];
 
 // Mock current user state (in a real app, this would come from auth context)
 const mockCurrentUser = {
   isLoggedIn: true, // Change to true to see logged-in user interface
   user_id: 100,
-  name: "Current User"
+  name: "Current User",
+  skills_offered: [
+    { skill_id: 4, skill_name: "UI/UX Design" },
+    { skill_id: 5, skill_name: "Photography" },
+    { skill_id: 28, skill_name: "Graphic Design" },
+    { skill_id: 13, skill_name: "Content Writing" }
+  ]
 };
 
 // Pagination constants
@@ -225,12 +267,10 @@ const Home = () => {
       return;
     }
     
-    // Simulate sending swap request
-    alert(`Swap request sent to ${profile.name}!`);
-    console.log('Swap request sent to:', profile);
-    
-    // In a real app, you might navigate to a conversation or requests page
-    // navigate('/requests');
+    // Navigate to the user's profile page and pass current user data
+    navigate(`/profile/${profile.user_id}`, { 
+      state: { currentUser: currentUser }
+    });
   };
 
   const handleLoadMore = async () => {
@@ -267,16 +307,52 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8 animate-fadeInDown">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Discover Amazing Skills & Talents
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
             Connect with skilled individuals in your area and start meaningful skill exchanges today.
           </p>
         </div>
 
         {/* Login/Signup CTA for non-logged-in users */}
         {!currentUser.isLoggedIn && <LoginSignupCTA onAuthAction={handleAuthAction} />}
+
+        {/* How It Works Section - Show only for non-logged-in users */}
+        {!currentUser.isLoggedIn && (
+          <div className="bg-white rounded-xl shadow-lg p-8 mb-8 animate-fadeInUp">
+            <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">How SkillSwap Works</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">1. Create Your Profile</h3>
+                <p className="text-gray-600">Sign up and list the skills you can teach and what you'd like to learn.</p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">2. Find Perfect Matches</h3>
+                <p className="text-gray-600">Browse profiles and find people whose skills complement yours.</p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">3. Start Learning Together</h3>
+                <p className="text-gray-600">Connect, exchange skills, and grow your knowledge through collaboration.</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Search and Filter Section */}
         <SearchFilter
@@ -290,6 +366,21 @@ const Home = () => {
           filteredProfiles={filteredProfiles}
           profiles={profiles}
         />
+
+        {/* Profiles Section Header */}
+        {!isLoading && profiles.length > 0 && (
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              {currentUser.isLoggedIn ? 'Connect with Skilled Individuals' : 'Featured Skill Swappers'}
+            </h2>
+            <p className="text-gray-600">
+              {currentUser.isLoggedIn 
+                ? 'Click on any profile to view details and send a swap request' 
+                : 'Join our community to connect with these amazing people'
+              }
+            </p>
+          </div>
+        )}
 
         {/* Profiles Grid */}
         {isLoading ? (

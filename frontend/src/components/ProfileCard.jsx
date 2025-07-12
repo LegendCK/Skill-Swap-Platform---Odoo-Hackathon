@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 const ProfileCard = ({ profile, currentUser, onSwapRequest, onAuthAction }) => {
   const getInitials = (name) => {
     return name
@@ -52,14 +54,18 @@ const ProfileCard = ({ profile, currentUser, onSwapRequest, onAuthAction }) => {
     <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 p-6">
       {/* Profile Header */}
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
+        <Link 
+          to={`/profile/${profile.user_id}`}
+          state={{ currentUser: currentUser }}
+          className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200"
+        >
           {/* Profile Picture (Initials) */}
           <div className="w-16 h-16 bg-gradient-to-br from-brand-primary to-brand-primaryDark rounded-full flex items-center justify-center text-white text-lg font-bold">
             {getInitials(profile.name)}
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{profile.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 hover:text-brand-primary transition-colors duration-200">{profile.name}</h3>
             <p className="text-sm text-gray-600 flex items-center">
               <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -68,7 +74,16 @@ const ProfileCard = ({ profile, currentUser, onSwapRequest, onAuthAction }) => {
               {profile.location}
             </p>
           </div>
-        </div>
+        </Link>
+        
+        {/* View Profile Link */}
+        <Link
+          to={`/profile/${profile.user_id}`}
+          state={{ currentUser: currentUser }}
+          className="text-brand-primary hover:text-brand-primaryDark text-sm font-medium transition-colors duration-200"
+        >
+          View Profile
+        </Link>
       </div>
 
       {/* Rating */}
