@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import apiService from '../services/api';
 import { 
   Navbar, 
   Footer, 
@@ -10,178 +12,19 @@ import {
   EmptyState 
 } from '../components';
 
-// Mock data for profiles (in a real app, this would come from an API)
-const mockProfiles = [
-  {
-    user_id: 1,
-    name: "Sarah Wilson",
-    location: "Mumbai, India",
-    profile_pic: null, // Will use initials
-    rating: 4.8,
-    total_swaps: 15,
-    is_public: true, // Only public profiles will be shown
-    skills_offered: [
-      { skill_id: 1, skill_name: "Web Development" },
-      { skill_id: 2, skill_name: "React" },
-      { skill_id: 3, skill_name: "JavaScript" }
-    ],
-    skills_wanted: [
-      { skill_id: 4, skill_name: "UI/UX Design" },
-      { skill_id: 5, skill_name: "Photography" }
-    ]
-  },
-  {
-    user_id: 2,
-    name: "Rajesh Kumar",
-    location: "Delhi, India",
-    profile_pic: null,
-    rating: 4.6,
-    total_swaps: 23,
-    is_public: true,
-    skills_offered: [
-      { skill_id: 6, skill_name: "Python" },
-      { skill_id: 7, skill_name: "Data Analysis" },
-      { skill_id: 8, skill_name: "Machine Learning" }
-    ],
-    skills_wanted: [
-      { skill_id: 1, skill_name: "Web Development" },
-      { skill_id: 9, skill_name: "Cloud Computing" }
-    ]
-  },
-  {
-    user_id: 3,
-    name: "Priya Sharma",
-    location: "Bangalore, India",
-    profile_pic: null,
-    rating: 4.9,
-    total_swaps: 31,
-    is_public: true,
-    skills_offered: [
-      { skill_id: 4, skill_name: "UI/UX Design" },
-      { skill_id: 10, skill_name: "Graphic Design" },
-      { skill_id: 11, skill_name: "Adobe Photoshop" }
-    ],
-    skills_wanted: [
-      { skill_id: 12, skill_name: "Digital Marketing" },
-      { skill_id: 13, skill_name: "Content Writing" }
-    ]
-  },
-  {
-    user_id: 4,
-    name: "Amit Patel",
-    location: "Pune, India",
-    profile_pic: null,
-    rating: 4.7,
-    total_swaps: 18,
-    is_public: false, // This profile is private, won't be shown
-    skills_offered: [
-      { skill_id: 5, skill_name: "Photography" },
-      { skill_id: 14, skill_name: "Video Editing" },
-      { skill_id: 15, skill_name: "Drone Operation" }
-    ],
-    skills_wanted: [
-      { skill_id: 16, skill_name: "Music Production" },
-      { skill_id: 17, skill_name: "Sound Design" }
-    ]
-  },
-  {
-    user_id: 5,
-    name: "Sneha Reddy",
-    location: "Hyderabad, India",
-    profile_pic: null,
-    rating: 4.5,
-    total_swaps: 12,
-    is_public: true,
-    skills_offered: [
-      { skill_id: 12, skill_name: "Digital Marketing" },
-      { skill_id: 18, skill_name: "Social Media Management" },
-      { skill_id: 19, skill_name: "SEO" }
-    ],
-    skills_wanted: [
-      { skill_id: 6, skill_name: "Python" },
-      { skill_id: 20, skill_name: "Data Visualization" }
-    ]
-  },
-  {
-    user_id: 6,
-    name: "Vikram Singh",
-    location: "Chennai, India",
-    profile_pic: null,
-    rating: 4.4,
-    total_swaps: 8,
-    is_public: false, // This profile is private, won't be shown
-    skills_offered: [
-      { skill_id: 21, skill_name: "Project Management" },
-      { skill_id: 22, skill_name: "Agile Methodology" },
-      { skill_id: 23, skill_name: "Leadership" }
-    ],
-    skills_wanted: [
-      { skill_id: 24, skill_name: "Blockchain" },
-      { skill_id: 25, skill_name: "Cryptocurrency" }
-    ]
-  },
-  {
-    user_id: 7,
-    name: "Anita Gupta",
-    location: "Kolkata, India",
-    profile_pic: null,
-    rating: 4.7,
-    total_swaps: 20,
-    is_public: true,
-    skills_offered: [
-      { skill_id: 13, skill_name: "Content Writing" },
-      { skill_id: 26, skill_name: "Copywriting" },
-      { skill_id: 27, skill_name: "Blog Writing" }
-    ],
-    skills_wanted: [
-      { skill_id: 4, skill_name: "UI/UX Design" },
-      { skill_id: 28, skill_name: "Video Editing" }
-    ]
-  },
-  {
-    user_id: 8,
-    name: "Rohit Mehta",
-    location: "Ahmedabad, India",
-    profile_pic: null,
-    rating: 4.3,
-    total_swaps: 9,
-    is_public: true,
-    skills_offered: [
-      { skill_id: 29, skill_name: "Mobile App Development" },
-      { skill_id: 30, skill_name: "Flutter" },
-      { skill_id: 31, skill_name: "Firebase" }
-    ],
-    skills_wanted: [
-      { skill_id: 8, skill_name: "Machine Learning" },
-      { skill_id: 32, skill_name: "Backend Development" }
-    ]
-  }];
-
-// Mock current user state (in a real app, this would come from auth context)
-const mockCurrentUser = {
-  isLoggedIn: true, // Change to true to see logged-in user interface
-  user_id: 100,
-  name: "Current User",
-  skills_offered: [
-    { skill_id: 4, skill_name: "UI/UX Design" },
-    { skill_id: 5, skill_name: "Photography" },
-    { skill_id: 28, skill_name: "Graphic Design" },
-    { skill_id: 13, skill_name: "Content Writing" }
-  ]
-};
-
 // Pagination constants
 const PROFILES_PER_PAGE = 6;
 
 const Home = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  
   const [profiles, setProfiles] = useState([]);
   const [filteredProfiles, setFilteredProfiles] = useState([]);
   const [displayedProfiles, setDisplayedProfiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSkillFilter, setSelectedSkillFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUser] = useState(mockCurrentUser);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -196,18 +39,40 @@ const Home = () => {
   )].sort();
 
   useEffect(() => {
-    // Simulate API call to fetch public profiles only
+    // Fetch public profiles from API
     const fetchProfiles = async () => {
       setIsLoading(true);
       try {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Filter to show only public profiles
-        const publicProfiles = mockProfiles.filter(profile => profile.is_public);
-        setProfiles(publicProfiles);
-        setFilteredProfiles(publicProfiles);
-      } catch (error) {
-        console.error('Error fetching profiles:', error);
+        const profilesData = await apiService.getPublicProfiles();
+        
+        // Transform API data to match component expectations
+        const transformedProfiles = profilesData.map(profile => ({
+          user_id: profile.user_id,
+          name: profile.name,
+          location: profile.location || "Location not specified",
+          profile_pic: null, // API doesn't include this yet
+          rating: profile.rating || 0,
+          total_swaps: 0, // Will be calculated from backend later
+          is_public: true, // Only public profiles are returned
+          skills_offered: Array.isArray(profile.skills_offered) ? 
+            profile.skills_offered.map((skill, index) => ({
+              skill_id: index + 1,
+              skill_name: skill
+            })) : [],
+          skills_wanted: Array.isArray(profile.skills_wanted) ? 
+            profile.skills_wanted.map((skill, index) => ({
+              skill_id: index + 1000, // Offset to avoid conflicts
+              skill_name: skill
+            })) : []
+        }));
+
+        setProfiles(transformedProfiles);
+        setFilteredProfiles(transformedProfiles);
+      } catch (err) {
+        console.error('Error fetching profiles:', err);
+        // Fallback to empty array on error
+        setProfiles([]);
+        setFilteredProfiles([]);
       } finally {
         setIsLoading(false);
       }

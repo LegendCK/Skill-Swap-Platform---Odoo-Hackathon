@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
+import { useAuth } from '../hooks/useAuth';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
@@ -10,6 +11,7 @@ const loginSchema = z.object({
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
   
   // Get return URL and message from navigation state
   const returnTo = location.state?.returnTo || '/';
@@ -63,23 +65,18 @@ const Login = () => {
       setIsSubmitting(true);
       try {
         console.log('Login data:', formData);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Simulate successful login
+        // Use auth context login method
+        await login(formData.email, formData.password);
+        
         console.log('Login successful, redirecting to:', returnTo);
-        
-        // In a real app, you would:
-        // 1. Send login request to API
-        // 2. Store authentication token
-        // 3. Update global auth state
         
         // Navigate to return URL or default to home
         navigate(returnTo, { replace: true });
         
       } catch (error) {
         console.error('Login error:', error);
-        setErrors({ general: 'Login failed. Please try again.' });
+        setErrors({ general: error.message || 'Login failed. Please try again.' });
       } finally {
         setIsSubmitting(false);
       }

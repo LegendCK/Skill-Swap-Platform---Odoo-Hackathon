@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { z } from 'zod';
+import { useAuth } from '../hooks/useAuth';
+import apiService from '../services/api';
 import Navbar from '../components/Navbar';
 
 const profileSchema = z.object({
@@ -23,28 +25,14 @@ const availableSkills = [
   { skill_id: 10, skill_name: "Project Management" }
 ];
 
-// Mock current user state (in a real app, this would come from auth context)
-const mockCurrentUser = {
-  isLoggedIn: true,
-  user_id: 1,
-  name: "Alice Johnson",
-  skills_offered: [
-    { skill_id: 4, skill_name: "UI/UX Design" },
-    { skill_id: 5, skill_name: "Photography" },
-    { skill_id: 28, skill_name: "Graphic Design" },
-    { skill_id: 13, skill_name: "Content Writing" }
-  ]
-};
-
 const Profile = () => {
-  // Mock current user
-  const [currentUser] = useState(mockCurrentUser);
+  const { currentUser } = useAuth();
 
-  // Mock initial profile data
+  // Profile form state
   const [profile, setProfile] = useState({
-    user_id: 1,
-    name: "Alice Johnson",
-    email: "alice@example.com",
+    user_id: null,
+    name: "",
+    email: "",
     location: null,
     availability: null,
     public_profile: true,
@@ -68,6 +56,35 @@ const Profile = () => {
   // Dropdown states
   const [isOfferedDropdownOpen, setIsOfferedDropdownOpen] = useState(false);
   const [isWantedDropdownOpen, setIsWantedDropdownOpen] = useState(false);
+
+  // Load user profile data on component mount
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (!currentUser?.isLoggedIn) return;
+      
+      try {
+        setIsLoading(true);
+        const profileData = await apiService.getProfile();
+        
+        setProfile({
+          user_id: profileData.id,
+          name: profileData.name || "",
+          email: profileData.email || "",
+          location: profileData.location || "",
+          availability: profileData.availability || "",
+          public_profile: profileData.public_profile ?? true,
+          skills_offered: profileData.skills_offered || [],
+          skills_wanted: profileData.skills_wanted || []
+        });
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfileData();
+  }, [currentUser]);
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -283,23 +300,33 @@ const Profile = () => {
     if (Object.keys(newErrors).length === 0) {
       setIsLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Prepare data for API
+        const updateData = {
+          name: formData.name,
+          location: formData.location,
+          availability: formData.availability,
+          public_profile: formData.public_profile,
+          skills_offered: selectedOfferedSkills.map(skill => skill.skill_name),
+          skills_wanted: selectedWantedSkills.map(skill => skill.skill_name)
+        };
         
-        // Update profile
-        const updatedProfile = {
+        // Update profile via API
+        const updatedProfile = await apiService.updateProfile(updateData);
+        
+        // Update local state with response
+        setProfile({
           ...profile,
-          ...formData,
+          ...updatedProfile,
           skills_offered: selectedOfferedSkills,
           skills_wanted: selectedWantedSkills,
           profile_completed: true
-        };
+        });
         
-        setProfile(updatedProfile);
         setIsEditing(false);
-        console.log('Profile updated:', updatedProfile);
+        console.log('Profile updated successfully');
       } catch (error) {
         console.error('Error updating profile:', error);
+        // You could add a toast notification here
       } finally {
         setIsLoading(false);
       }

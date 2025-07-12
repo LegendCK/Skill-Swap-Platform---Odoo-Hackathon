@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import { useAuth } from '../hooks/useAuth';
 
 const signupSchema = z.object({
   name: z.string().min(1, 'Name is required').min(2, 'Name must be at least 2 characters'),
@@ -14,6 +15,7 @@ const signupSchema = z.object({
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -66,13 +68,17 @@ const SignUp = () => {
       setIsSubmitting(true);
       try {
         console.log('Signup data:', formData);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Use auth context signup method
+        await signup(formData.name, formData.email, formData.password);
+        
+        console.log('Signup successful, redirecting to profile');
         
         // Redirect to profile page after successful signup
         navigate('/profile');
       } catch (error) {
         console.error('Signup error:', error);
+        setErrors({ general: error.message || 'Signup failed. Please try again.' });
       } finally {
         setIsSubmitting(false);
       }

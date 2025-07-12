@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import apiService from '../services/api';
 import { Navbar, Footer, LoadingSpinner } from '../components';
 
-// Mock data for a user profile
-const mockUserProfile = {
+// Mock data for a user profile (keeping for potential fallback)
+const _mockUserProfile = {
   user_id: 1,
   name: "Sarah Wilson",
   location: "Mumbai, India",
@@ -66,22 +68,9 @@ const mockUserProfile = {
 const UserProfile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
+  const { currentUser } = useAuth();
   const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Get current user from navigation state or use fallback
-  const [currentUser] = useState(location.state?.currentUser || {
-    isLoggedIn: true,
-    user_id: 100,
-    name: "Current User",
-    skills_offered: [
-      { skill_id: 4, skill_name: "UI/UX Design" },
-      { skill_id: 5, skill_name: "Photography" },
-      { skill_id: 28, skill_name: "Graphic Design" },
-      { skill_id: 13, skill_name: "Content Writing" }
-    ]
-  });
   
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [selectedOfferedSkill, setSelectedOfferedSkill] = useState('');
@@ -94,15 +83,14 @@ const UserProfile = () => {
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
 
   useEffect(() => {
-    // Simulate API call to fetch user profile
+    // Fetch user profile from API
     const fetchUserProfile = async () => {
+      if (!userId) return;
+      
       setIsLoading(true);
       try {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // In a real app, you would fetch based on userId
-        setUserProfile(mockUserProfile);
+        const profileData = await apiService.getUserProfile(userId);
+        setUserProfile(profileData);
       } catch (error) {
         console.error('Error fetching user profile:', error);
       } finally {
@@ -239,7 +227,7 @@ const UserProfile = () => {
     try {
       setIsSubmittingRequest(true);
 
-      // Prepare the data in the format you specified
+      // Prepare the data for API
       const swapRequestData = {
         receiver_id: userProfile.user_id,
         offered_skill_id: selectedOfferedSkillId,
@@ -249,25 +237,9 @@ const UserProfile = () => {
 
       console.log('Sending swap request data:', swapRequestData);
 
-      // In a real app, this would be an API call like:
-      // const response = await fetch('/api/swap-requests', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${currentUser.token}` // if using auth tokens
-      //   },
-      //   body: JSON.stringify(swapRequestData)
-      // });
-      
-      // if (!response.ok) {
-      //   throw new Error('Failed to send swap request');
-      // }
-      
-      // const result = await response.json();
-      // console.log('Swap request response:', result);
-
-      // Simulate API call success
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Send swap request via API
+      const result = await apiService.createSwapRequest(swapRequestData);
+      console.log('Swap request response:', result);
 
       alert(`Swap request sent to ${userProfile.name}! 🎉\n\nYou offered: ${selectedOfferedSkill}\nYou want to learn: ${selectedWantedSkill}`);
       closeSwapModal();

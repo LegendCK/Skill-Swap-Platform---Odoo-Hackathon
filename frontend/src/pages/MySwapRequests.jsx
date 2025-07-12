@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import apiService from '../services/api';
 import { Navbar, Footer, LoadingSpinner } from '../components';
 
-// Mock data for swap requests
-const mockSwapRequests = {
+// Mock data for swap requests (keeping for potential fallback)
+const _mockSwapRequests = {
   sent: [
     {
       id: 1,
@@ -140,6 +142,7 @@ const mockSwapRequests = {
 
 const MySwapRequests = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [swapRequests, setSwapRequests] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('sent'); // 'sent', 'received', or 'accepted'
@@ -149,40 +152,35 @@ const MySwapRequests = () => {
   const [feedbackComment, setFeedbackComment] = useState('');
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
-  // Mock current user - in real app, this would come from auth context
-  const currentUser = {
-    isLoggedIn: true,
-    user_id: 100,
-    name: "Current User",
-    skills_offered: [
-      { skill_id: 4, skill_name: "UI/UX Design" },
-      { skill_id: 5, skill_name: "Photography" },
-      { skill_id: 28, skill_name: "Graphic Design" },
-      { skill_id: 13, skill_name: "Content Writing" }
-    ]
-  };
-
   useEffect(() => {
     // Check if user is logged in
-    if (!currentUser.isLoggedIn) {
+    if (!currentUser?.isLoggedIn) {
       navigate('/login');
       return;
     }
 
-    // Simulate API call to fetch swap requests
+    // Fetch swap requests from API
     const fetchSwapRequests = async () => {
       setIsLoading(true);
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const [sentRequests, receivedRequests] = await Promise.all([
+          apiService.getSentSwapRequests(),
+          apiService.getReceivedSwapRequests()
+        ]);
         
-        // const response = await fetch('/api/my-swap-requests', {
-        //   headers: { 'Authorization': `Bearer ${token}` }
-        // });
-        // const data = await response.json();
-        
-        setSwapRequests(mockSwapRequests);
+        setSwapRequests({
+          sent: sentRequests || [],
+          received: receivedRequests || [],
+          accepted: [...(sentRequests || []), ...(receivedRequests || [])].filter(req => req.status === 'accepted')
+        });
       } catch (error) {
         console.error('Error fetching swap requests:', error);
+        // Fallback to empty arrays on error
+        setSwapRequests({
+          sent: [],
+          received: [],
+          accepted: []
+        });
       } finally {
         setIsLoading(false);
       }
@@ -225,20 +223,22 @@ const MySwapRequests = () => {
     try {
       setIsSubmittingAction(true);
       
-      // Simulate API call
-      console.log(`${action} swap request:`, swapId);
-      
-      // const response = await fetch(`/api/swap-requests/${swapId}/${action}`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${token}`
-      //   }
-      // });
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Call appropriate API endpoint
+      switch (action) {
+        case 'accept':
+          await apiService.acceptSwapRequest(swapId);
+          break;
+        case 'reject':
+          await apiService.rejectSwapRequest(swapId);
+          break;
+        case 'cancel':
+          await apiService.cancelSwapRequest(swapId);
+          break;
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
 
-      // Update local state
+      // Update local state based on the action
       setSwapRequests(prev => {
         const newState = { ...prev };
         
