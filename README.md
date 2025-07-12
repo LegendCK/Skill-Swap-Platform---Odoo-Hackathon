@@ -44,6 +44,11 @@ A web application that allows users to exchange skills with others. Users can li
 | Styling    | Tailwind CSS / Custom CSS |
 
 
+## Video Link
+
+[Click here to view the video folder](https://drive.google.com/drive/folders/1bQ-0mYgWVAYZHybexYRynCkq4Xxg4Xvo?usp=sharing)
+
+
 ## Setup Instructions
 
 ### Prerequisites

@@ -17,7 +17,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
   try {
     // Ensure the profile is public and completed
     const userRes = await pool.query(
-      `SELECT name, location, availability FROM users 
+      `SELECT name, location, availability, created_at FROM users 
        WHERE user_id = $1 AND public_profile = true AND profile_completed = true`,
       [userId]
     );
@@ -64,14 +64,25 @@ router.get('/:userId', authenticateToken, async (req, res) => {
       [userId]
     );
 
+    // Total successful swaps
+    const swapsRes = await pool.query(
+      `SELECT COUNT(*) AS total_swaps
+       FROM swap_requests
+       WHERE (creator_id = $1 OR receiver_id = $1) AND status = 'accepted'`,
+      [userId]
+    );
+
     const avgRating = ratingRes.rows[0].average_rating;
+    const totalSwaps = swapsRes.rows[0].total_swaps;
 
     res.status(200).json({
       user_id: userId,
       name: user.name,
       location: user.location,
       availability: user.availability,
+      member_since: user.created_at,
       average_rating: avgRating || null,
+      total_swaps: parseInt(totalSwaps) || 0,
       skills_offered: offeredRes.rows,
       skills_wanted: wantedRes.rows,
       feedback: feedbackRes.rows

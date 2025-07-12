@@ -168,14 +168,29 @@ const MySwapRequests = () => {
           apiService.getReceivedSwapRequests()
         ]);
         
+        // Handle empty responses
+        const sentData = Array.isArray(sentRequests) ? sentRequests : [];
+        const receivedData = Array.isArray(receivedRequests) ? receivedRequests : [];
+        
         setSwapRequests({
-          sent: sentRequests || [],
-          received: receivedRequests || [],
-          accepted: [...(sentRequests || []), ...(receivedRequests || [])].filter(req => req.status === 'accepted')
+          sent: sentData,
+          received: receivedData,
+          accepted: [...sentData, ...receivedData].filter(req => req.status === 'accepted')
         });
       } catch (error) {
         console.error('Error fetching swap requests:', error);
-        // Fallback to empty arrays on error
+        // Provide user-friendly error handling
+        if (error.message.includes('404')) {
+          console.log('No swap requests found (empty database) - showing empty state');
+        } else if (error.message.includes('401')) {
+          console.error('Authentication failed - redirecting to login');
+          navigate('/login');
+          return;
+        } else {
+          console.error('Network or server error:', error.message);
+        }
+        
+        // Always set empty arrays as fallback to prevent crashes
         setSwapRequests({
           sent: [],
           received: [],
@@ -240,10 +255,15 @@ const MySwapRequests = () => {
 
       // Update local state based on the action
       setSwapRequests(prev => {
+        if (!prev) {
+          console.warn('No previous swap requests data available');
+          return { sent: [], received: [], accepted: [] };
+        }
+        
         const newState = { ...prev };
         
         if (activeTab === 'sent') {
-          const swapToMove = prev.sent.find(swap => swap.id === swapId);
+          const swapToMove = prev.sent?.find(swap => swap.id === swapId);
           if (action === 'accept') {
             // Move to accepted tab
             newState.accepted = [...(prev.accepted || []), { 
@@ -253,16 +273,16 @@ const MySwapRequests = () => {
               type: 'sent'
             }];
             // Remove from sent
-            newState.sent = prev.sent.filter(swap => swap.id !== swapId);
+            newState.sent = (prev.sent || []).filter(swap => swap.id !== swapId);
           } else {
-            newState.sent = prev.sent.map(swap => 
+            newState.sent = (prev.sent || []).map(swap => 
               swap.id === swapId 
                 ? { ...swap, status: action === 'cancel' ? 'cancelled' : action, updated_at: new Date().toISOString() }
                 : swap
             );
           }
         } else if (activeTab === 'received') {
-          const swapToMove = prev.received.find(swap => swap.id === swapId);
+          const swapToMove = prev.received?.find(swap => swap.id === swapId);
           if (action === 'accept') {
             // Move to accepted tab
             newState.accepted = [...(prev.accepted || []), { 
@@ -272,9 +292,9 @@ const MySwapRequests = () => {
               type: 'received'
             }];
             // Remove from received
-            newState.received = prev.received.filter(swap => swap.id !== swapId);
+            newState.received = (prev.received || []).filter(swap => swap.id !== swapId);
           } else {
-            newState.received = prev.received.map(swap => 
+            newState.received = (prev.received || []).map(swap => 
               swap.id === swapId 
                 ? { ...swap, status: action, updated_at: new Date().toISOString() }
                 : swap
@@ -299,7 +319,21 @@ const MySwapRequests = () => {
       }
     } catch (error) {
       console.error(`Error ${action}ing swap request:`, error);
-      alert(`Failed to ${action} swap request. Please try again.`);
+      let errorMessage = `Failed to ${action} swap request.`;
+      
+      if (error.message.includes('404')) {
+        errorMessage = 'Swap request not found or no longer available.';
+      } else if (error.message.includes('403')) {
+        errorMessage = 'You are not authorized to perform this action.';
+      } else if (error.message.includes('400')) {
+        errorMessage = 'This swap request cannot be modified in its current state.';
+      } else if (error.message.includes('401')) {
+        errorMessage = 'Your session has expired. Please log in again.';
+        navigate('/login');
+        return;
+      }
+      
+      alert(errorMessage + ' Please try again.');
     } finally {
       setIsSubmittingAction(false);
     }

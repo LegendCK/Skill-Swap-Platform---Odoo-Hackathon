@@ -1,10 +1,36 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 const Navbar = ({ currentUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    // Add confirmation dialog to prevent accidental signouts
+    const confirmed = window.confirm('Are you sure you want to sign out?');
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      console.log('🚪 User initiated sign out');
+      const result = await logout();
+      if (result.success) {
+        console.log('✅ Sign out successful, redirecting to home');
+        navigate('/');
+      } else {
+        console.warn('⚠️ Logout returned unsuccessful result, but proceeding anyway');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('❌ Sign out failed:', error);
+      // Still navigate even if logout fails to ensure user isn't stuck
+      navigate('/');
+    }
+  };
 
   const getNotificationCount = () => {
     // 1. Fetch from API: GET /api/notifications/unread-count
@@ -177,10 +203,7 @@ const Navbar = ({ currentUser }) => {
                     </Link>
                     <div className="border-t border-gray-100">
                       <button
-                        onClick={() => {
-                          console.log('Logout clicked');
-                          alert('Logout functionality would be implemented here');
-                        }}
+                        onClick={handleSignOut}
                         className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 transition-colors duration-200"
                       >
                         Sign Out
@@ -285,8 +308,7 @@ const Navbar = ({ currentUser }) => {
                   <button
                     onClick={() => {
                       setIsMobileMenuOpen(false);
-                      console.log('Logout clicked');
-                      alert('Logout functionality would be implemented here');
+                      handleSignOut();
                     }}
                     className="text-left text-red-600 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
                   >

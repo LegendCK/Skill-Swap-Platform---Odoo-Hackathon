@@ -82,9 +82,11 @@ class ApiService {
 
   // Clear authentication
   clearAuth() {
+    console.log('🧹 Clearing authentication data...');
     this.token = null;
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
+    console.log('💾 Authentication data cleared from localStorage');
   }
 
   // Authentication APIs
@@ -118,8 +120,10 @@ class ApiService {
   }
 
   async logout() {
+    console.log('🚪 Logging out user...');
     this.clearAuth();
-    return Promise.resolve();
+    console.log('✅ User logged out successfully');
+    return Promise.resolve({ success: true });
   }
 
   // Skills APIs
@@ -148,7 +152,9 @@ class ApiService {
   }
 
   async getUserProfile(userId) {
-    return this.makeRequest(`/profile/${userId}`);
+    return this.makeRequest(`/profile/${userId}`, {
+      requireAuth: true,
+    });
   }
 
   // Swap APIs
@@ -172,6 +178,18 @@ class ApiService {
     });
   }
 
+  async getSentSwapRequests() {
+    return this.makeRequest('/myswaps/sent', {
+      requireAuth: true,
+    });
+  }
+
+  async getReceivedSwapRequests() {
+    return this.makeRequest('/myswaps/received', {
+      requireAuth: true,
+    });
+  }
+
   async acceptSwapRequest(swapId) {
     return this.makeRequest(`/myswaps/${swapId}/accept`, {
       method: 'PUT',
@@ -182,6 +200,13 @@ class ApiService {
   async rejectSwapRequest(swapId) {
     return this.makeRequest(`/myswaps/${swapId}/reject`, {
       method: 'PUT',
+      requireAuth: true,
+    });
+  }
+
+  async cancelSwapRequest(swapId) {
+    return this.makeRequest(`/myswaps/cancel/${swapId}`, {
+      method: 'DELETE',
       requireAuth: true,
     });
   }
@@ -261,8 +286,11 @@ export const {
   getSwapData,
   sendSwapRequest,
   getMySwaps,
+  getSentSwapRequests,
+  getReceivedSwapRequests,
   acceptSwapRequest,
   rejectSwapRequest,
+  cancelSwapRequest,
   submitFeedback,
   getCurrentUser,
   isAuthenticated,
