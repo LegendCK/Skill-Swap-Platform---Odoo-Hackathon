@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
 const signupSchema = z.object({
@@ -13,6 +13,8 @@ const signupSchema = z.object({
 });
 
 const SignUp = () => {
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -22,6 +24,8 @@ const SignUp = () => {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -62,7 +66,11 @@ const SignUp = () => {
       setIsSubmitting(true);
       try {
         console.log('Signup data:', formData);
+        // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Redirect to profile page after successful signup
+        navigate('/profile');
       } catch (error) {
         console.error('Signup error:', error);
       } finally {
@@ -131,42 +139,116 @@ const SignUp = () => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2 transition-colors duration-200 group-focus-within:text-brand-secondary">
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300 ease-in-out transform focus:scale-105 ${
-                  errors.password 
-                    ? 'border-brand-accentRed focus:ring-brand-accentRed animate-shake' 
-                    : 'border-gray-300 focus:ring-brand-secondary hover:border-brand-secondary'
-                }`}
-                placeholder="Create a password"
-                value={formData.password}
-                onChange={handleChange}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300 ease-in-out transform focus:scale-105 ${
+                    errors.password 
+                      ? 'border-brand-accentRed focus:ring-brand-accentRed animate-shake' 
+                      : 'border-gray-300 focus:ring-brand-secondary hover:border-brand-secondary'
+                  }`}
+                  placeholder="Create a password"
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200 focus:outline-none focus:ring-0 active:outline-none select-none"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex="-1"
+                >
+                  {showPassword ? (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
               {errors.password && <p className="mt-1 text-sm text-brand-accentRed animate-slideInLeft">{errors.password}</p>}
+              {formData.password && formData.password.length > 0 && formData.password.length < 6 && (
+                <p className="mt-1 text-sm text-brand-amber animate-slideInLeft flex items-center">
+                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  Password must be at least 6 characters
+                </p>
+              )}
+              {formData.password && formData.password.length >= 6 && (
+                <p className="mt-1 text-sm text-brand-secondary animate-slideInLeft flex items-center">
+                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Password length is good
+                </p>
+              )}
             </div>
 
             <div className="group">
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2 transition-colors duration-200 group-focus-within:text-brand-secondary">
                 Confirm Password
               </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300 ease-in-out transform focus:scale-105 ${
-                  errors.confirmPassword 
-                    ? 'border-brand-accentRed focus:ring-brand-accentRed animate-shake' 
-                    : 'border-gray-300 focus:ring-brand-secondary hover:border-brand-secondary'
-                }`}
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300 ease-in-out transform focus:scale-105 ${
+                    errors.confirmPassword 
+                      ? 'border-brand-accentRed focus:ring-brand-accentRed animate-shake' 
+                      : formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword
+                        ? 'border-brand-accentRed focus:ring-brand-accentRed'
+                        : formData.password && formData.confirmPassword && formData.password === formData.confirmPassword
+                          ? 'border-brand-secondary focus:ring-brand-secondary'
+                          : 'border-gray-300 focus:ring-brand-secondary hover:border-brand-secondary'
+                  }`}
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200 focus:outline-none focus:ring-0 active:outline-none select-none"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  tabIndex="-1"
+                >
+                  {showConfirmPassword ? (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
               {errors.confirmPassword && <p className="mt-1 text-sm text-brand-accentRed animate-slideInLeft">{errors.confirmPassword}</p>}
+              {formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="mt-1 text-sm text-brand-accentRed animate-slideInLeft flex items-center">
+                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  Passwords do not match
+                </p>
+              )}
+              {formData.password && formData.confirmPassword && formData.password === formData.confirmPassword && (
+                <p className="mt-1 text-sm text-brand-secondary animate-slideInLeft flex items-center">
+                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Passwords match
+                </p>
+              )}
             </div>
 
             <button
