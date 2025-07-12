@@ -121,5 +121,35 @@ router.patch('/respond', authenticateToken, async (req, res) => {
   }
 });
 
+router.delete('/cancel/:swap_id', authenticateToken, async (req, res) => {
+  const userId = req.user.user_id;
+  const { swap_id } = req.params;
+
+  try {
+    // Check if swap exists, belongs to user, and is pending
+    const result = await pool.query(
+      `SELECT * FROM swap_requests
+       WHERE swap_id = $1 AND creator_id = $2 AND status = 'pending'`,
+      [swap_id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Swap not found or cannot be cancelled.' });
+    }
+
+    // Delete the swap request
+    await pool.query(
+      `DELETE FROM swap_requests WHERE swap_id = $1`,
+      [swap_id]
+    );
+
+    res.status(200).json({ message: 'Swap request cancelled and removed successfully.' });
+
+  } catch (err) {
+    console.error('Error cancelling swap request:', err.message);
+    res.status(500).json({ error: 'Server error while cancelling swap.' });
+  }
+});
+
 
 export default router;
