@@ -86,36 +86,36 @@ router.put('/', authenticateToken, async (req, res) => {
 
     // 🔹 Helper: insert skill if not exists
     const resolveSkillNamesToIds = async (commaString) => {
-      if (!commaString || commaString.trim() === '') return [];
+    if (!commaString || commaString.trim() === '') return [];
 
-      const names = commaString
+    const names = commaString
         .split(',')
         .map(s => s.trim())
         .filter(s => s.length > 0);
 
-      const ids = [];
+    const ids = [];
 
-      for (const name of names) {
-        // Check for duplicate (case-insensitive)
+    for (const name of names) {
+        // Check if it already exists (case-insensitive)
         const existing = await pool.query(
-          'SELECT skill_id FROM skills WHERE LOWER(skill_name) = LOWER($1)',
-          [name]
+        'SELECT skill_id FROM skills WHERE LOWER(skill_name) = LOWER($1)',
+        [name]
         );
 
         if (existing.rows.length > 0) {
-          return res.status(400).json({ error: `Skill "${name}" already exists.` });
-        }
-
+        ids.push(existing.rows[0].skill_id);
+        } else {
         const insert = await pool.query(
-          'INSERT INTO skills (skill_name) VALUES ($1) RETURNING skill_id',
-          [name]
+            'INSERT INTO skills (skill_name) VALUES ($1) RETURNING skill_id',
+            [name]
         );
-
         ids.push(insert.rows[0].skill_id);
-      }
+        }
+    }
 
-      return ids;
+    return ids;
     };
+
 
     // 🔹 Insert new skills and collect skill IDs
     const newOfferedIds = await resolveSkillNamesToIds(new_skills_offered);
