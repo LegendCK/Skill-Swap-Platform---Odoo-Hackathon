@@ -12,6 +12,9 @@ import authenticateToken from './middleware/authenticateToken.js';
 //routes
 import loginRoutes from './routes/login.js';
 import signupRoutes from './routes/signup.js';
+import profileRoutes from './routes/profile.js';
+import skillRoutes from './routes/skills.js';
+
 
 
 dotenv.config();
@@ -40,6 +43,8 @@ pool.connect()
 
 app.use('/signup', signupRoutes);
 app.use('/login', loginRoutes);
+app.use('/profile', profileRoutes);
+app.use('/skills', skillRoutes);
 
 
 // Start the server

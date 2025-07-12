@@ -1,28 +1,25 @@
-import jwt from "jsonwebtoken";
-import pool from "../db/client.js";
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-const JWT_SECRET = process.env.JWT_SECRET;
+dotenv.config();
 
-async function authenticateToken(req, res, next) {
-    const token = req.cookies?.token;
-    if (!token) {
-        return res.status(401).redirect('/login');
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1]; // Format: "Bearer <token>"
+
+  if (!token) {
+    return res.status(401).json({ error: 'Missing or malformed token.' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      console.error('JWT verification failed:', err.message);
+      return res.status(403).json({ error: 'Invalid or expired token.' });
     }
 
-    try {
-        const user = jwt.verify(token, JWT_SECRET);
-        const query = `SELECT id, email FROM "User" WHERE email = $1;`;
-        const { rows } = await pool.query(query, [user.email]);
-
-        if (rows.length === 0) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        req.user = rows[0];
-        next();
-    } catch (err) {
-        return res.status(403).send("Invalid token");
-    }
-}
+    req.user = user; // decoded payload (e.g., { user_id, email })
+    next();
+  });
+};
 
 export default authenticateToken;
