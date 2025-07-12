@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -8,6 +8,13 @@ const loginSchema = z.object({
 });
 
 const Login = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get return URL and message from navigation state
+  const returnTo = location.state?.returnTo || '/';
+  const messageFromNav = location.state?.message;
+  
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -56,9 +63,23 @@ const Login = () => {
       setIsSubmitting(true);
       try {
         console.log('Login data:', formData);
+        // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Simulate successful login
+        console.log('Login successful, redirecting to:', returnTo);
+        
+        // In a real app, you would:
+        // 1. Send login request to API
+        // 2. Store authentication token
+        // 3. Update global auth state
+        
+        // Navigate to return URL or default to home
+        navigate(returnTo, { replace: true });
+        
       } catch (error) {
         console.error('Login error:', error);
+        setErrors({ general: 'Login failed. Please try again.' });
       } finally {
         setIsSubmitting(false);
       }
@@ -71,12 +92,38 @@ const Login = () => {
     <div className="min-h-screen w-full bg-brand-primary flex items-center justify-center px-4 sm:px-6 lg:px-8 animate-fadeIn">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-2xl p-8 transform transition-all duration-500 ease-out animate-slideUp hover:shadow-3xl">
+          {/* Message from navigation */}
+          {messageFromNav && (
+            <div className="mb-6 p-4 bg-brand-primary bg-opacity-10 border border-brand-primary border-opacity-20 rounded-lg animate-fadeIn">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-brand-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-brand-primary text-sm font-medium">{messageFromNav}</p>
+              </div>
+            </div>
+          )}
+          
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2 animate-fadeInDown">Welcome Back</h2>
-            <p className="text-gray-600 animate-fadeInUp animation-delay-200">Sign in to your account</p>
+            <p className="text-gray-600 animate-fadeInUp animation-delay-200">
+              {returnTo !== '/' ? 'Sign in to continue' : 'Sign in to your account'}
+            </p>
           </div>
 
           <form className="space-y-6 animate-fadeInUp animation-delay-300" onSubmit={handleSubmit}>
+            {/* General error display */}
+            {errors.general && (
+              <div className="p-4 bg-brand-accentRed bg-opacity-10 border border-brand-accentRed border-opacity-20 rounded-lg animate-slideInLeft">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-brand-accentRed mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-brand-accentRed text-sm font-medium">{errors.general}</p>
+                </div>
+              </div>
+            )}
+            
             <div className="group">
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2 transition-colors duration-200 group-focus-within:text-brand-primary">
                 Email Address
@@ -162,10 +209,23 @@ const Login = () => {
           <div className="mt-6 text-center animate-fadeInUp animation-delay-500">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-brand-primary hover:text-brand-primaryDark font-semibold transition-all duration-200 hover:underline transform hover:scale-105 inline-block">
+              <Link to="/signup" state={{ returnTo, message: 'Create an account to get started' }} className="text-brand-primary hover:text-brand-primaryDark font-semibold transition-all duration-200 hover:underline transform hover:scale-105 inline-block">
                 Sign up
               </Link>
             </p>
+            
+            {/* Back to Home link */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <Link 
+                to="/" 
+                className="text-sm text-gray-500 hover:text-brand-primary transition-all duration-200 flex items-center justify-center group"
+              >
+                <svg className="w-4 h-4 mr-1 group-hover:transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Home
+              </Link>
+            </div>
           </div>
         </div>
       </div>
