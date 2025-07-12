@@ -1,9 +1,44 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const Navbar = ({ currentUser }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const getNotificationCount = () => {
+    // 1. Fetch from API: GET /api/notifications/unread-count
+    // 2. Use React Context: const { unreadCount } = useNotifications();
+    // 3. Subscribe to WebSocket for real-time updates
+    // 4. Cache in localStorage for offline experience
+    
+    // Mock notification data based on current swap requests:
+    const pendingReceivedRequests = 2; // Alex Rivera & Maria Garcia requests
+    const acceptedRequestsNotifications = 0; // All seen
+    const newMessages = 0; // No chat feature yet
+    const systemNotifications = 0; // No system alerts
+    
+    return pendingReceivedRequests + acceptedRequestsNotifications + newMessages + systemNotifications;
+  };
+
+  const notificationCount = getNotificationCount();
+
+  // Get notification badge styling based on count and urgency
+  const getNotificationBadgeClass = (size = 'normal') => {
+    const baseClass = size === 'small' ? 'w-4 h-4' : 'w-5 h-5';
+    const urgencyClass = notificationCount > 5 ? 'bg-red-600' : notificationCount > 0 ? 'bg-red-500' : 'bg-gray-400';
+    const animationClass = notificationCount > 0 ? 'animate-pulse' : '';
+    
+    return `${baseClass} ${urgencyClass} text-white text-xs rounded-full flex items-center justify-center ${animationClass}`;
+  };
+
+  // Handle click on swap requests link - could be used to mark notifications as read
+  const handleSwapRequestsClick = () => {
+    // 1. Mark notifications as read: POST /api/notifications/mark-read
+    // 2. Update global state/context
+    // 3. Clear the notification badge
+    console.log('Navigating to swap requests - notifications would be marked as read');
+  };
 
   const getInitials = (name) => {
     return name
@@ -12,6 +47,10 @@ const Navbar = ({ currentUser }) => {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const isActiveTab = (path) => {
+    return location.pathname === path;
   };
 
   const handleAuthAction = (action) => {
@@ -51,23 +90,41 @@ const Navbar = ({ currentUser }) => {
                 {/* Logged in user tabs */}
                 <Link
                   to="/"
-                  className="text-brand-primary hover:text-brand-primaryDark px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 bg-brand-primary bg-opacity-10 border border-brand-primary border-opacity-20"
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                    isActiveTab('/') 
+                      ? 'text-brand-primary bg-brand-primary bg-opacity-10 border border-brand-primary border-opacity-20' 
+                      : 'text-gray-700 hover:text-brand-primary hover:bg-brand-primary hover:bg-opacity-10'
+                  }`}
                 >
                   Home
                 </Link>
                 <Link
                   to="/swap-requests"
-                  className="text-gray-700 hover:text-brand-primary px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 hover:bg-brand-primary hover:bg-opacity-10 relative"
+                  onClick={handleSwapRequestsClick}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative ${
+                    isActiveTab('/swap-requests') 
+                      ? 'text-brand-primary bg-brand-primary bg-opacity-10 border border-brand-primary border-opacity-20' 
+                      : 'text-gray-700 hover:text-brand-primary hover:bg-brand-primary hover:bg-opacity-10'
+                  }`}
                 >
                   Swap Requests
-                  {/* Notification badge - in a real app, this would be based on actual unread requests */}
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    3
-                  </span>
+                  {/* Notification badge - show only if there are pending requests */}
+                  {notificationCount > 0 && (
+                    <span 
+                      className={`absolute -top-1 -right-1 ${getNotificationBadgeClass()}`}
+                      title={`${notificationCount} unread notification${notificationCount !== 1 ? 's' : ''}`}
+                    >
+                      {notificationCount > 9 ? '9+' : notificationCount}
+                    </span>
+                  )}
                 </Link>
                 <Link
                   to="/profile"
-                  className="text-gray-700 hover:text-brand-primary px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 hover:bg-brand-primary hover:bg-opacity-10"
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                    isActiveTab('/profile') 
+                      ? 'text-brand-primary bg-brand-primary bg-opacity-10 border border-brand-primary border-opacity-20' 
+                      : 'text-gray-700 hover:text-brand-primary hover:bg-brand-primary hover:bg-opacity-10'
+                  }`}
                 >
                   My Profile
                 </Link>
@@ -99,12 +156,18 @@ const Navbar = ({ currentUser }) => {
                     </Link>
                     <Link
                       to="/swap-requests"
+                      onClick={handleSwapRequestsClick}
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200 relative"
                     >
                       Swap Requests
-                      <span className="absolute right-4 top-2 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                        3
-                      </span>
+                      {notificationCount > 0 && (
+                        <span 
+                          className={`absolute right-4 top-2 ${getNotificationBadgeClass('small')}`}
+                          title={`${notificationCount} unread notification${notificationCount !== 1 ? 's' : ''}`}
+                        >
+                          {notificationCount > 9 ? '9+' : notificationCount}
+                        </span>
+                      )}
                     </Link>
                     <Link
                       to="/settings"
@@ -115,7 +178,6 @@ const Navbar = ({ currentUser }) => {
                     <div className="border-t border-gray-100">
                       <button
                         onClick={() => {
-                          // In a real app, this would handle logout
                           console.log('Logout clicked');
                           alert('Logout functionality would be implemented here');
                         }}
@@ -171,24 +233,44 @@ const Navbar = ({ currentUser }) => {
                   {/* Logged in user mobile menu */}
                   <Link
                     to="/"
-                    className="text-brand-primary px-3 py-2 rounded-md text-base font-medium bg-brand-primary bg-opacity-10"
+                    className={`px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                      isActiveTab('/') 
+                        ? 'text-brand-primary bg-brand-primary bg-opacity-10 border border-brand-primary border-opacity-20' 
+                        : 'text-gray-700 hover:text-brand-primary hover:bg-brand-primary hover:bg-opacity-10'
+                    }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Home
                   </Link>
                   <Link
                     to="/swap-requests"
-                    className="text-gray-700 hover:text-brand-primary px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 relative"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 relative ${
+                      isActiveTab('/swap-requests') 
+                        ? 'text-brand-primary bg-brand-primary bg-opacity-10 border border-brand-primary border-opacity-20' 
+                        : 'text-gray-700 hover:text-brand-primary hover:bg-brand-primary hover:bg-opacity-10'
+                    }`}
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleSwapRequestsClick();
+                    }}
                   >
                     Swap Requests
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                      3
-                    </span>
+                    {notificationCount > 0 && (
+                      <span 
+                        className={`absolute -top-1 -right-1 ${getNotificationBadgeClass()}`}
+                        title={`${notificationCount} unread notification${notificationCount !== 1 ? 's' : ''}`}
+                      >
+                        {notificationCount > 9 ? '9+' : notificationCount}
+                      </span>
+                    )}
                   </Link>
                   <Link
                     to="/profile"
-                    className="text-gray-700 hover:text-brand-primary px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                    className={`px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                      isActiveTab('/profile') 
+                        ? 'text-brand-primary bg-brand-primary bg-opacity-10 border border-brand-primary border-opacity-20' 
+                        : 'text-gray-700 hover:text-brand-primary hover:bg-brand-primary hover:bg-opacity-10'
+                    }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     My Profile

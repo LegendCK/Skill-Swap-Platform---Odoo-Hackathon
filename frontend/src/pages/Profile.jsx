@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { z } from 'zod';
+import Navbar from '../components/Navbar';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required').min(2, 'Name must be at least 2 characters'),
@@ -22,7 +23,23 @@ const availableSkills = [
   { skill_id: 10, skill_name: "Project Management" }
 ];
 
+// Mock current user state (in a real app, this would come from auth context)
+const mockCurrentUser = {
+  isLoggedIn: true,
+  user_id: 1,
+  name: "Alice Johnson",
+  skills_offered: [
+    { skill_id: 4, skill_name: "UI/UX Design" },
+    { skill_id: 5, skill_name: "Photography" },
+    { skill_id: 28, skill_name: "Graphic Design" },
+    { skill_id: 13, skill_name: "Content Writing" }
+  ]
+};
+
 const Profile = () => {
+  // Mock current user
+  const [currentUser] = useState(mockCurrentUser);
+
   // Mock initial profile data
   const [profile, setProfile] = useState({
     user_id: 1,
@@ -355,7 +372,9 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 animate-fadeIn">
+    <>
+      <Navbar currentUser={currentUser} />
+      <div className="min-h-screen bg-gray-50 py-8 animate-fadeIn">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Profile Header */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6 animate-slideUp">
@@ -941,7 +960,8 @@ const Profile = () => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
