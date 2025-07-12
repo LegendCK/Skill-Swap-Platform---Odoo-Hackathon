@@ -1,17 +1,19 @@
 import express from 'express';
-import bcrypt from 'bcrypt';
 import pool from '../db/client.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
-
-// Email regex for basic format check
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.post('/', async (req, res) => {
   const { email, password, name } = req.body;
 
-  // Check for missing fields or wrong types
+  // Validate inputs
   if (
     !email || !password || !name ||
     typeof email !== 'string' ||
@@ -21,17 +23,14 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'All fields (email, password, name) must be non-empty strings.' });
   }
 
-  // Validate email format
   if (!emailRegex.test(email)) {
     return res.status(400).json({ error: 'Invalid email format.' });
   }
 
-  // Enforce minimum password length
   if (password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
   }
 
-  // Trim and sanitize input
   const cleanEmail = email.trim().toLowerCase();
   const cleanName = name.trim();
 
@@ -46,10 +45,10 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'Email is already registered.' });
     }
 
-    // Hash the password
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Insert new user
+    // Insert user
     const result = await pool.query(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, $2, $3)
@@ -58,7 +57,22 @@ router.post('/', async (req, res) => {
     );
 
     const newUser = result.rows[0];
-    res.status(201).json({ message: 'User registered successfully.', user: newUser });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { user_id: newUser.user_id, email: newUser.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // Set token in response header
+    res.setHeader('Authorization', `Bearer ${token}`);
+
+    // Respond with success
+    res.status(201).json({
+      message: 'User registered successfully.',
+      user: newUser
+    });
 
   } catch (err) {
     console.error('Signup Error:', err.message);

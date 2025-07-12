@@ -60,7 +60,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // PUT /profile — update profile data
 router.put('/', authenticateToken, async (req, res) => {
   const userId = req.user.user_id;
-  const {
+  let {
     location,
     availability,
     public_profile,
@@ -71,60 +71,45 @@ router.put('/', authenticateToken, async (req, res) => {
   } = req.body;
 
   try {
-    // 🔹 Update basic profile fields
-    const userUpdateQuery = `
-      UPDATE users SET 
-        location = $1,
-        availability = $2,
-        public_profile = $3
-      WHERE user_id = $4
-    `;
-    await pool.query(userUpdateQuery, [location || null, availability || null, public_profile, userId]);
-
-    // 🔹 Delete old skills
-    await pool.query('DELETE FROM user_skills WHERE user_id = $1', [userId]);
-
-    // 🔹 Helper: insert skill if not exists
+    // 🔹 Helper: insert skills if they don't exist
     const resolveSkillNamesToIds = async (commaString) => {
-    if (!commaString || commaString.trim() === '') return [];
+      if (!commaString || commaString.trim() === '') return [];
 
-    const names = commaString
+      const names = commaString
         .split(',')
         .map(s => s.trim())
         .filter(s => s.length > 0);
 
-    const ids = [];
+      const ids = [];
 
-    for (const name of names) {
-        // Check if it already exists (case-insensitive)
+      for (const name of names) {
         const existing = await pool.query(
-        'SELECT skill_id FROM skills WHERE LOWER(skill_name) = LOWER($1)',
-        [name]
+          'SELECT skill_id FROM skills WHERE LOWER(skill_name) = LOWER($1)',
+          [name]
         );
 
         if (existing.rows.length > 0) {
-        ids.push(existing.rows[0].skill_id);
+          ids.push(existing.rows[0].skill_id);
         } else {
-        const insert = await pool.query(
+          const insert = await pool.query(
             'INSERT INTO skills (skill_name) VALUES ($1) RETURNING skill_id',
             [name]
-        );
-        ids.push(insert.rows[0].skill_id);
+          );
+          ids.push(insert.rows[0].skill_id);
         }
-    }
+      }
 
-    return ids;
+      return ids;
     };
 
-
-    // 🔹 Insert new skills and collect skill IDs
+    // 🔹 Resolve new skills
     const newOfferedIds = await resolveSkillNamesToIds(new_skills_offered);
     const newWantedIds = await resolveSkillNamesToIds(new_skills_wanted);
 
     const finalSkillsOffered = [...skills_offered, ...newOfferedIds];
     const finalSkillsWanted = [...skills_wanted, ...newWantedIds];
 
-    // 🔹 Validate provided skill IDs
+    // 🔹 Validate skill IDs
     const validateSkillIds = async (ids) => {
       if (ids.length === 0) return true;
       const result = await pool.query(
@@ -139,7 +124,10 @@ router.put('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'One or more skill IDs are invalid.' });
     }
 
-    // 🔹 Insert user_skills
+    // 🔹 Delete previous user skills
+    await pool.query('DELETE FROM user_skills WHERE user_id = $1', [userId]);
+
+    // 🔹 Insert new user_skills
     for (const skillId of finalSkillsOffered) {
       await pool.query(
         'INSERT INTO user_skills (user_id, skill_id, skill_type) VALUES ($1, $2, $3)',
@@ -154,7 +142,7 @@ router.put('/', authenticateToken, async (req, res) => {
       );
     }
 
-    // 🔹 Mark profile as completed if all required fields exist
+    // 🔹 Determine if profile is complete
     const isComplete = (
       location?.trim() &&
       availability?.trim() &&
@@ -162,10 +150,26 @@ router.put('/', authenticateToken, async (req, res) => {
       finalSkillsWanted.length > 0
     );
 
+    // 🔹 Save user data
+    const forcePrivate = public_profile === true && !isComplete;
+    if (forcePrivate) public_profile = false;
+
     await pool.query(
-      'UPDATE users SET profile_completed = $1 WHERE user_id = $2',
-      [!!isComplete, userId]
+      `UPDATE users SET 
+         location = $1,
+         availability = $2,
+         public_profile = $3,
+         profile_completed = $4
+       WHERE user_id = $5`,
+      [location || null, availability || null, public_profile, !!isComplete, userId]
     );
+
+    if (forcePrivate) {
+      return res.status(400).json({
+        message: 'Profile saved, but profile is incomplete. Cannot set public_profile to true.',
+        profile_completed: !!isComplete
+      });
+    }
 
     res.status(200).json({
       message: 'Profile updated successfully.',
@@ -177,6 +181,7 @@ router.put('/', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Server error while updating profile.' });
   }
 });
+
 
 
 

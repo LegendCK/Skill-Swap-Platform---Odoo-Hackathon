@@ -14,8 +14,11 @@ import loginRoutes from './routes/login.js';
 import signupRoutes from './routes/signup.js';
 import profileRoutes from './routes/profile.js';
 import skillRoutes from './routes/skills.js';
-
-
+import homeRoutes from './routes/home.js';
+import viewProfileRoutes from './routes/viewProfile.js';
+import swapRoutes from './routes/swap.js';
+import mySwapsRoutes from './routes/mySwaps.js';
+import feedbackRoutes from './routes/feedback.js';
 
 dotenv.config();
 
@@ -43,8 +46,13 @@ pool.connect()
 
 app.use('/signup', signupRoutes);
 app.use('/login', loginRoutes);
-app.use('/profile', profileRoutes);
+app.use('/myprofile', profileRoutes);
 app.use('/skills', skillRoutes);
+app.use('/home', homeRoutes);
+app.use('/profile', viewProfileRoutes);
+app.use('/swap', swapRoutes);
+app.use('/myswaps', mySwapsRoutes);
+app.use('/feedback', feedbackRoutes);
 
 
 // Start the server
