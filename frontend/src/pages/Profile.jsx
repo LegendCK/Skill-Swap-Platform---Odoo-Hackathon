@@ -64,7 +64,11 @@ const Profile = () => {
       
       try {
         setIsLoading(true);
-        const profileData = await apiService.getCurrentUserProfile();
+        const response = await apiService.getCurrentUserProfile();
+        console.log('Profile API response:', response);
+        
+        // Extract profile from response
+        const profileData = response.profile || response;
         
         setProfile({
           user_id: profileData.user_id,
@@ -73,8 +77,20 @@ const Profile = () => {
           location: profileData.location || "",
           availability: profileData.availability || "",
           public_profile: profileData.public_profile ?? true,
+          profile_completed: profileData.profile_completed || false,
           skills_offered: profileData.skills_offered || [],
           skills_wanted: profileData.skills_wanted || []
+        });
+        
+        console.log('Profile data loaded:', {
+          user_id: profileData.user_id,
+          name: profileData.name,
+          email: profileData.email,
+          location: profileData.location,
+          availability: profileData.availability,
+          profile_completed: profileData.profile_completed,
+          skills_offered: profileData.skills_offered,
+          skills_wanted: profileData.skills_wanted
         });
       } catch (error) {
         console.error('Failed to load profile:', error);
@@ -85,6 +101,43 @@ const Profile = () => {
 
     loadProfileData();
   }, [isAuthenticated]);
+
+  // Function to reload profile data
+  const reloadProfileData = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const response = await apiService.getCurrentUserProfile();
+      console.log('Reloading profile API response:', response);
+      
+      // Extract profile from response
+      const profileData = response.profile || response;
+      
+      setProfile({
+        user_id: profileData.user_id,
+        name: profileData.name || "",
+        email: profileData.email || "",
+        location: profileData.location || "",
+        availability: profileData.availability || "",
+        public_profile: profileData.public_profile ?? true,
+        profile_completed: profileData.profile_completed || false,
+        skills_offered: profileData.skills_offered || [],
+        skills_wanted: profileData.skills_wanted || []
+      });
+      
+      console.log('Profile data reloaded:', {
+        user_id: profileData.user_id,
+        name: profileData.name,
+        location: profileData.location,
+        availability: profileData.availability,
+        profile_completed: profileData.profile_completed,
+        skills_offered: profileData.skills_offered,
+        skills_wanted: profileData.skills_wanted
+      });
+    } catch (error) {
+      console.error('Failed to reload profile:', error);
+    }
+  };
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -134,6 +187,9 @@ const Profile = () => {
       if (!isEditing && isIncomplete) {
         console.log('Setting edit mode due to incomplete profile');
         setIsEditing(true);
+      } else if (isEditing && !isIncomplete && profile.profile_completed) {
+        console.log('Exiting edit mode - profile is complete');
+        setIsEditing(false);
       }
     }
   }, [profile.user_id, profile.profile_completed, profile.location, profile.availability, profile.skills_offered?.length, profile.skills_wanted?.length, isEditing]);
@@ -367,18 +423,8 @@ const Profile = () => {
         const updatedProfile = await apiService.updateProfile(updateData);
         console.log('Backend response:', updatedProfile);
         
-        // Update local state with response
-        setProfile({
-          ...profile,
-          name: formData.name,
-          email: formData.email,
-          location: formData.location,
-          availability: formData.availability,
-          public_profile: formData.public_profile,
-          skills_offered: selectedOfferedSkills,
-          skills_wanted: selectedWantedSkills,
-          profile_completed: updatedProfile.profile_completed !== undefined ? updatedProfile.profile_completed : true
-        });
+        // Reload fresh data from backend instead of updating local state
+        await reloadProfileData();
         
         // Exit edit mode
         setIsEditing(false);
