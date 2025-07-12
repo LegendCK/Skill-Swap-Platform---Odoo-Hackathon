@@ -69,8 +69,12 @@ const SignUp = () => {
       try {
         console.log('Signup data:', formData);
         
-        // Use auth context signup method
-        await signup(formData.name, formData.email, formData.password);
+        // Use auth context signup method with userData object
+        await signup({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        });
         
         console.log('Signup successful, redirecting to profile');
         

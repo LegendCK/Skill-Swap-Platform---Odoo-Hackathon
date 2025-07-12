@@ -43,16 +43,35 @@ const Home = () => {
     const fetchProfiles = async () => {
       setIsLoading(true);
       try {
-        const profilesData = await apiService.getPublicProfiles();
+        const response = await apiService.getPublicProfiles();
+        console.log('API Response:', response);
+        
+        // Extract users array from response - backend returns { users: [...] }
+        const profilesData = response?.users || [];
+        
+        if (!Array.isArray(profilesData)) {
+          console.error('Expected profilesData to be an array, got:', typeof profilesData);
+          setProfiles([]);
+          setFilteredProfiles([]);
+          return;
+        }
+
+        // Handle empty data case
+        if (profilesData.length === 0) {
+          console.log('No profiles found in database');
+          setProfiles([]);
+          setFilteredProfiles([]);
+          return;
+        }
         
         // Transform API data to match component expectations
         const transformedProfiles = profilesData.map(profile => ({
           user_id: profile.user_id,
-          name: profile.name,
+          name: profile.name || 'Unknown User',
           location: profile.location || "Location not specified",
-          profile_pic: null, // API doesn't include this yet
-          rating: profile.rating || 0,
-          total_swaps: 0, // Will be calculated from backend later
+          profile_pic: profile.profile_pic || null,
+          rating: parseFloat(profile.rating) || 0,
+          total_swaps: profile.total_swaps || 0,
           is_public: true, // Only public profiles are returned
           skills_offered: Array.isArray(profile.skills_offered) ? 
             profile.skills_offered.map((skill, index) => ({
@@ -66,11 +85,15 @@ const Home = () => {
             })) : []
         }));
 
+        console.log('Transformed profiles:', transformedProfiles);
         setProfiles(transformedProfiles);
         setFilteredProfiles(transformedProfiles);
+        
       } catch (err) {
         console.error('Error fetching profiles:', err);
-        // Fallback to empty array on error
+        console.error('Error details:', err.message);
+        
+        // Set empty arrays on error to prevent app crash
         setProfiles([]);
         setFilteredProfiles([]);
       } finally {
@@ -250,6 +273,38 @@ const Home = () => {
         {/* Profiles Grid */}
         {isLoading ? (
           <LoadingSpinner />
+        ) : profiles.length === 0 ? (
+          <div className="text-center py-12 animate-fadeInUp">
+            <div className="max-w-md mx-auto">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.196-2.121M9 4a3 3 0 016 0v1m-6-1a3 3 0 00-6 6c0 1.042.018 2.036.04 3m-.04-9h.01M15 10h.01M21 12c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1s.45-1 1-1h2c.55 0 1 .45 1 1z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Profiles Available</h3>
+              <p className="text-gray-600 mb-6">
+                {currentUser?.isLoggedIn 
+                  ? "Be the first to complete your profile and start connecting with others!" 
+                  : "No users have created public profiles yet. Join our community and be among the first!"
+                }
+              </p>
+              {currentUser?.isLoggedIn ? (
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="bg-brand-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-brand-primary-dark transition-colors duration-200"
+                >
+                  Complete Your Profile
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleAuthAction('signup')}
+                  className="bg-brand-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-brand-primary-dark transition-colors duration-200"
+                >
+                  Join SkillSwap
+                </button>
+              )}
+            </div>
+          </div>
         ) : filteredProfiles.length === 0 ? (
           <EmptyState 
             onClearFilters={() => {

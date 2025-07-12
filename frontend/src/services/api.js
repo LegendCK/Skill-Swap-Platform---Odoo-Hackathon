@@ -17,8 +17,13 @@ class ApiService {
       'Content-Type': 'application/json',
     };
 
-    if (includeAuth && this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    if (includeAuth) {
+      const token = this.getAuthToken(); // Use getAuthToken() to check both memory and localStorage
+      console.log('🔐 Getting auth token:', token ? 'Token found' : 'No token');
+      console.log('🔐 Token value:', token);
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
 
     return headers;
@@ -54,11 +59,14 @@ class ApiService {
 
   // Set authentication token
   setAuthToken(token) {
+    console.log('💾 Setting auth token:', token ? 'Token received' : 'No token');
     this.token = token;
     if (token) {
       localStorage.setItem('authToken', token);
+      console.log('💾 Token stored in localStorage');
     } else {
       localStorage.removeItem('authToken');
+      console.log('💾 Token removed from localStorage');
     }
   }
 
@@ -203,16 +211,33 @@ class ApiService {
 
   // Check if token is expired and refresh if needed
   async checkAuthStatus() {
-    if (!this.isAuthenticated()) {
+    const token = this.getAuthToken();
+    if (!token) {
       return false;
     }
 
     try {
-      // Try to fetch current user profile to validate token
-      await this.getCurrentUserProfile();
-      return true;
-    } catch {
-      // Token is invalid or expired
+      // Try a simple authenticated request to validate token
+      const response = await fetch(`${this.baseURL}/myprofile`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        // Ensure token is set in memory
+        this.token = token;
+        return true;
+      } else {
+        // Token is invalid
+        this.clearAuth();
+        return false;
+      }
+    } catch (error) {
+      // Network error or token is invalid
+      console.error('Auth status check failed:', error);
       this.clearAuth();
       return false;
     }

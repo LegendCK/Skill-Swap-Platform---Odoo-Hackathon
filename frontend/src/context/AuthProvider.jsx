@@ -45,16 +45,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await apiService.login(email, password);
       
-      if (response.user && response.token) {
+      if (response.user) {
         setUser(response.user);
         setIsAuthenticated(true);
-        return { success: true, user: response.user };
+        return response.user;
       } else {
         throw new Error('Invalid response from server');
       }
     } catch (error) {
       console.error('Login failed:', error);
-      return { success: false, error: error.message };
+      throw error;
     }
   };
 
@@ -62,16 +62,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await apiService.signup(userData);
       
-      if (response.user && response.token) {
+      if (response.user) {
         setUser(response.user);
         setIsAuthenticated(true);
-        return { success: true, user: response.user };
+        return response.user;
       } else {
         throw new Error('Invalid response from server');
       }
     } catch (error) {
       console.error('Signup failed:', error);
-      return { success: false, error: error.message };
+      throw error;
     }
   };
 

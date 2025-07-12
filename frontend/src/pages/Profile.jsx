@@ -26,7 +26,7 @@ const availableSkills = [
 ];
 
 const Profile = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
 
   // Profile form state
   const [profile, setProfile] = useState({
@@ -60,14 +60,14 @@ const Profile = () => {
   // Load user profile data on component mount
   useEffect(() => {
     const loadProfileData = async () => {
-      if (!currentUser?.isLoggedIn) return;
+      if (!isAuthenticated) return;
       
       try {
         setIsLoading(true);
-        const profileData = await apiService.getProfile();
+        const profileData = await apiService.getCurrentUserProfile();
         
         setProfile({
-          user_id: profileData.id,
+          user_id: profileData.user_id,
           name: profileData.name || "",
           email: profileData.email || "",
           location: profileData.location || "",
@@ -84,30 +84,64 @@ const Profile = () => {
     };
 
     loadProfileData();
-  }, [currentUser]);
+  }, [isAuthenticated]);
 
   // Form data for editing
   const [formData, setFormData] = useState({
-    name: profile.name || '',
-    email: profile.email || '',
-    location: profile.location || '',
-    availability: profile.availability || '',
-    public_profile: profile.public_profile
+    name: '',
+    email: '',
+    location: '',
+    availability: '',
+    public_profile: true
   });
 
   // Skills management
-  const [selectedOfferedSkills, setSelectedOfferedSkills] = useState(profile.skills_offered);
-  const [selectedWantedSkills, setSelectedWantedSkills] = useState(profile.skills_wanted);
+  const [selectedOfferedSkills, setSelectedOfferedSkills] = useState([]);
+  const [selectedWantedSkills, setSelectedWantedSkills] = useState([]);
+
+  // Update formData when profile changes
+  useEffect(() => {
+    if (profile.user_id) {
+      setFormData({
+        name: profile.name || '',
+        email: profile.email || '',
+        location: profile.location || '',
+        availability: profile.availability || '',
+        public_profile: profile.public_profile ?? true
+      });
+      setSelectedOfferedSkills(profile.skills_offered || []);
+      setSelectedWantedSkills(profile.skills_wanted || []);
+    }
+  }, [profile]);
 
   useEffect(() => {
-    // Check if profile needs completion
-    if (!profile.profile_completed && !profile.location && !profile.availability) {
-      setIsEditing(true);
+    // Check if profile needs completion - only set edit mode if profile is truly incomplete
+    // and we're not already editing (to prevent constant toggling)
+    if (profile.user_id) {
+      console.log('Profile completion check:', {
+        profile_completed: profile.profile_completed,
+        location: profile.location,
+        availability: profile.availability,
+        skills_offered_count: profile.skills_offered?.length,
+        skills_wanted_count: profile.skills_wanted?.length,
+        isEditing: isEditing
+      });
+      
+      const isIncomplete = !profile.profile_completed && 
+        (!profile.location || !profile.availability || 
+         !profile.skills_offered?.length || !profile.skills_wanted?.length);
+      
+      if (!isEditing && isIncomplete) {
+        console.log('Setting edit mode due to incomplete profile');
+        setIsEditing(true);
+      }
     }
-    
-    // Fetch skills from backend when component mounts
+  }, [profile.user_id, profile.profile_completed, profile.location, profile.availability, profile.skills_offered?.length, profile.skills_wanted?.length, isEditing]);
+
+  // Separate useEffect for fetching skills (only once when component mounts)
+  useEffect(() => {
     fetchSkillsFromBackend();
-  }, [profile]);
+  }, []);
 
   // Function to fetch skills from backend
   const fetchSkillsFromBackend = async () => {
@@ -300,33 +334,58 @@ const Profile = () => {
     if (Object.keys(newErrors).length === 0) {
       setIsLoading(true);
       try {
+        // Separate existing skills (with numeric IDs) from custom skills
+        const existingOfferedSkills = selectedOfferedSkills.filter(skill => 
+          typeof skill.skill_id === 'number' || (typeof skill.skill_id === 'string' && !skill.skill_id.startsWith('custom_'))
+        );
+        const customOfferedSkills = selectedOfferedSkills.filter(skill => 
+          typeof skill.skill_id === 'string' && skill.skill_id.startsWith('custom_')
+        );
+        
+        const existingWantedSkills = selectedWantedSkills.filter(skill => 
+          typeof skill.skill_id === 'number' || (typeof skill.skill_id === 'string' && !skill.skill_id.startsWith('custom_'))
+        );
+        const customWantedSkills = selectedWantedSkills.filter(skill => 
+          typeof skill.skill_id === 'string' && skill.skill_id.startsWith('custom_')
+        );
+
         // Prepare data for API
         const updateData = {
           name: formData.name,
           location: formData.location,
           availability: formData.availability,
           public_profile: formData.public_profile,
-          skills_offered: selectedOfferedSkills.map(skill => skill.skill_name),
-          skills_wanted: selectedWantedSkills.map(skill => skill.skill_name)
+          skills_offered: existingOfferedSkills.map(skill => skill.skill_id),
+          skills_wanted: existingWantedSkills.map(skill => skill.skill_id),
+          new_skills_offered: customOfferedSkills.map(skill => skill.skill_name).join(', '),
+          new_skills_wanted: customWantedSkills.map(skill => skill.skill_name).join(', ')
         };
+        
+        console.log('Sending profile update data:', updateData);
         
         // Update profile via API
         const updatedProfile = await apiService.updateProfile(updateData);
+        console.log('Backend response:', updatedProfile);
         
         // Update local state with response
         setProfile({
           ...profile,
-          ...updatedProfile,
+          name: formData.name,
+          email: formData.email,
+          location: formData.location,
+          availability: formData.availability,
+          public_profile: formData.public_profile,
           skills_offered: selectedOfferedSkills,
           skills_wanted: selectedWantedSkills,
-          profile_completed: true
+          profile_completed: updatedProfile.profile_completed !== undefined ? updatedProfile.profile_completed : true
         });
         
+        // Exit edit mode
         setIsEditing(false);
-        console.log('Profile updated successfully');
+        console.log('Profile updated successfully, profile_completed:', updatedProfile.profile_completed);
       } catch (error) {
         console.error('Error updating profile:', error);
-        // You could add a toast notification here
+        alert('Failed to update profile. Please try again.');
       } finally {
         setIsLoading(false);
       }

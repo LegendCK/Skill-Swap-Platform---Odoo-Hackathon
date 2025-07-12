@@ -65,13 +65,11 @@ router.post('/', async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    // Set token in response header
-    res.setHeader('Authorization', `Bearer ${token}`);
-
     // Respond with success
     res.status(201).json({
       message: 'User registered successfully.',
-      user: newUser
+      user: newUser,
+      token: token
     });
 
   } catch (err) {

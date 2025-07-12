@@ -50,11 +50,18 @@ router.post('/', async (req, res) => {
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
 
-    // Send token in header and response
+    // Send token and user data in response
     res
-      .header('Authorization', `Bearer ${token}`)
       .status(200)
-      .json({ message: 'Login successful', token });
+      .json({ 
+        message: 'Login successful', 
+        token,
+        user: {
+          user_id: user.user_id,
+          email: user.email,
+          name: user.name
+        }
+      });
 
   } catch (err) {
     console.error('Login error:', err.message);

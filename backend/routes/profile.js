@@ -61,6 +61,7 @@ router.get('/', authenticateToken, async (req, res) => {
 router.put('/', authenticateToken, async (req, res) => {
   const userId = req.user.user_id;
   let {
+    name,
     location,
     availability,
     public_profile,
@@ -144,6 +145,7 @@ router.put('/', authenticateToken, async (req, res) => {
 
     // 🔹 Determine if profile is complete
     const isComplete = (
+      name?.trim() &&
       location?.trim() &&
       availability?.trim() &&
       finalSkillsOffered.length > 0 &&
@@ -156,12 +158,13 @@ router.put('/', authenticateToken, async (req, res) => {
 
     await pool.query(
       `UPDATE users SET 
-         location = $1,
-         availability = $2,
-         public_profile = $3,
-         profile_completed = $4
-       WHERE user_id = $5`,
-      [location || null, availability || null, public_profile, !!isComplete, userId]
+         name = $1,
+         location = $2,
+         availability = $3,
+         public_profile = $4,
+         profile_completed = $5
+       WHERE user_id = $6`,
+      [name || null, location || null, availability || null, public_profile, !!isComplete, userId]
     );
 
     if (forcePrivate) {
